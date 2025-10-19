@@ -84,6 +84,7 @@ export default function AccountantDashboard() {
   const sumBank = (f) =>
     (f?.bankCollections || []).reduce((s, b) => s + Number(b?.amount || 0), 0);
 
+  
   const appsWithFallback = (f) => {
     const calc = sumApps(f);
     return calc > 0 ? calc : Number(f?.appsTotal || f?.appsCollection || 0);
@@ -205,6 +206,13 @@ const fetchForms = async () => {
     }
 
     try {
+      const res = await api.patch(`/api/forms/${f._id}/reject`, {
+        action: "reject",
+      });
+      alert("تم رفض التقرير");
+      fetchForms();
+      if (selectedForm && selectedForm._id === f._id)
+        setSelectedForm(res.data?.form || res.data);
       const endpoint =
         reviewAction === "release"
           ? `/api/forms/${reviewTarget._id}/release`
@@ -285,7 +293,9 @@ const fetchForms = async () => {
         heightLeft -= pageHeight;
       }
 
-      const name = `form-${selectedForm?.branch?.name || "branch"}-${(selectedForm?.formDate || "").slice(0, 10)}.pdf`;
+      const name = `form-${selectedForm?.branch?.name || "branch"}-${(
+        selectedForm?.formDate || ""
+      ).slice(0, 10)}.pdf`;
       pdf.save(name);
     } catch (err) {
       console.error(err);
@@ -328,9 +338,15 @@ const counts = useMemo(() => {
     datasets: [
       {
         data: [
-          forms.filter((f) => f.accountantRelease?.status !== "released" && f.accountantRelease?.status !== "rejected").length,
-          forms.filter((f) => f.accountantRelease?.status === "released").length,
-          forms.filter((f) => f.accountantRelease?.status === "rejected").length,
+          forms.filter(
+            (f) =>
+              f.accountantRelease?.status !== "released" &&
+              f.accountantRelease?.status !== "rejected"
+          ).length,
+          forms.filter((f) => f.accountantRelease?.status === "released")
+            .length,
+          forms.filter((f) => f.accountantRelease?.status === "rejected")
+            .length,
         ],
         backgroundColor: ["#f59e0b", "#10b981", "#ef4444"],
         borderWidth: 0,
@@ -621,12 +637,20 @@ const counts = useMemo(() => {
                 ) : forms.length ? (
                   forms.map((f) => (
                     <tr key={f._id} className="text-center">
-                      <td className="p-2 border">{formatDateOnly(f.formDate)}</td>
+                      <td className="p-2 border">
+                        {formatDateOnly(f.formDate)}
+                      </td>
                       <td className="p-2 border">{f.branch?.name || "-"}</td>
                       <td className="p-2 border">{f.user?.name || "-"}</td>
-                      <td className="p-2 border">{currency(f.cashCollection)}</td>
-                      <td className="p-2 border">{currency(appsWithFallback(f))}</td>
-                      <td className="p-2 border">{currency(bankWithFallback(f))}</td>
+                      <td className="p-2 border">
+                        {currency(f.cashCollection)}
+                      </td>
+                      <td className="p-2 border">
+                        {currency(appsWithFallback(f))}
+                      </td>
+                      <td className="p-2 border">
+                        {currency(bankWithFallback(f))}
+                      </td>
                       <td className="p-2 border">{currency(rowTotal(f))}</td>
                       <td className="p-2 border">
                         {f.accountantRelease?.status === "released"
